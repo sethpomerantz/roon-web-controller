@@ -128,8 +128,12 @@ function setupExpress() {
     if (req.query.id) {
       res.type("image/jpeg");
       res.set("Content-disposition", "inline; ");
-      roonGetImage(
-        { id: req.query.id, width: width, height: height, original: original },
+      roonGetImage({
+          id: req.query.id,
+          width: width,
+          height: height,
+          original: original
+        },
         (data) => {
           res.send(data);
         }
@@ -198,6 +202,17 @@ function setupExpress() {
     res.set("Content-Type", "application/json");
     res.set("Cache-Control", "no-cache");
     roonLibraryBrowse(req.body, (payload) => {
+      res.send(payload);
+    });
+  });
+
+
+  app.post("/api/simple", (req, res) => {
+    res.set("Content-Type", "application/json");
+    res.set("Cache-Control", "no-cache");
+    console.log(req.body);
+    console.log("Called /api/simple");
+    roonSimpleBrowse(req.body, (payload) => {
       res.send(payload);
     });
   });
@@ -373,8 +388,9 @@ function roonGetImage(options, cb) {
   if (options.original === true) {
     try {
       api.roon_image.get_image(
-        options.id,
-        { format: "image/jpeg" },
+        options.id, {
+          format: "image/jpeg"
+        },
         (cb_, contentType, body) => {
           cb(body);
         }
@@ -385,8 +401,7 @@ function roonGetImage(options, cb) {
   } else {
     try {
       api.roon_image.get_image(
-        options.id,
-        {
+        options.id, {
           scale: "fit",
           width: options.width,
           height: options.height,
@@ -402,8 +417,11 @@ function roonGetImage(options, cb) {
   }
 }
 
-function roonLibraryBrowse(data, cb) {
+function roonSimpleBrowse(data, cb) {
+  console.log(JSON.stringify(data.options));
+  data.options.pop_all = true;
   api.roon_browse.browse(data.options, (err, payload) => {
+
     if (err) {
       console.log(err, payload);
       cb({});
@@ -415,8 +433,120 @@ function roonLibraryBrowse(data, cb) {
       if (payload.list.display_offset > 0) {
         listoffset = payload.list.display_offset;
       }
-      api.roon_browse.load(
-        {
+      api.roon_browse.load({
+          hierarchy: "browse",
+          count: data.pager.count,
+          offset: listoffset,
+          multi_session_key: data.options.multi_session_key,
+        },
+        (error, payload) => {
+          // inital menu , nbow find Library 
+          var libraryItem = payload.items.find(function(el, index) {
+            if (el.title == 'Library')
+              return true;
+          });
+
+          // get Library Level 
+          api.roon_browse.browse({
+            hierarchy: "browse",
+            multi_session_key: data.options.multi_session_key,
+            item_key: libraryItem.item_key
+          }, (err, payload) => {
+
+            if (err) {
+              console.log(err, payload);
+              cb({});
+              return;
+            }
+            api.roon_browse.load({
+                hierarchy: "browse",
+                item_key: libraryItem.item_key,
+                multi_session_key: data.options.multi_session_key,
+              },
+              (error, payload) => {
+                console.log("First Level");
+                // inital menu , nbow find Library 
+                var tagItem = payload.items.find(function(el, index) {
+                  if (el.title == 'Tags')
+                    return true;
+                });
+
+                // get tag Level 
+                api.roon_browse.browse({
+                  hierarchy: "browse",
+                  multi_session_key: data.options.multi_session_key,
+                  item_key: tagItem.item_key
+                }, (err, payload) => {
+
+                  if (err) {
+                    console.log(err, payload);
+                    cb({});
+                    return;
+                  }
+                  api.roon_browse.load({
+                      hierarchy: "browse",
+                      item_key: tagItem.item_key,
+                      multi_session_key: data.options.multi_session_key,
+                    },
+                    (error, payload) => {
+                        // inital menu , nbow find Library 
+                        var tagItem = payload.items.find(function(el, index) {
+                          if (el.title == 'Evie')
+                            return true;
+                        });
+
+                        // get tag Level 
+                        api.roon_browse.browse({
+                          hierarchy: "browse",
+                          multi_session_key: data.options.multi_session_key,
+                          item_key: tagItem.item_key
+                        }, (err, payload) => {
+
+                          if (err) {
+                            console.log(err, payload);
+                            cb({});
+                            return;
+                          }
+                          api.roon_browse.load({
+                              hierarchy: "browse",
+                              item_key: tagItem.item_key,
+                              multi_session_key: data.options.multi_session_key,
+                            },
+                            (error, payload) => {
+                              cb(payload);
+                            });
+                          });
+                  });
+                });
+              });
+            });
+          });
+
+    } else {
+      console.log(payload.action);
+    }
+  });
+}
+
+function roonLibraryBrowse(data, cb) {
+  console.log("roonLibraryBrowse called");
+    console.log(JSON.stringify(data));
+
+  api.roon_browse.browse(data.options, (err, payload) => {
+
+    console.log(JSON.stringify(payload));
+    if (err) {
+      console.log(err, payload);
+      cb({});
+      return;
+    }
+
+    if (payload.action == "list") {
+      let listoffset = 0;
+      if (payload.list.display_offset > 0) {
+        listoffset = payload.list.display_offset;
+      }
+      api.roon_browse.load({
           hierarchy: "browse",
           count: data.pager.count,
           offset: listoffset,
@@ -433,8 +563,7 @@ function roonLibraryBrowse(data, cb) {
 }
 
 function roonLibraryLoad(options, cb) {
-  api.roon_browse.load(
-    {
+  api.roon_browse.load({
       hierarchy: "browse",
       count: options.count,
       offset: options.offset,

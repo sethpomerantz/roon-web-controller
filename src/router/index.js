@@ -31,6 +31,29 @@ const router = new VueRouter({
         },
       ],
     },
+    {
+      path: "/simple",
+      name: "Simple",
+      component: () => import("@/layouts/Simple.vue"),
+      children: [
+        {
+          path: "library",
+          name: "SimpleLibrary",
+          component: () => import("@/views/SimpleLibrary.vue"),
+        },
+        {
+          path: "now_playing",
+          name: "TouchscreenNowPlaying",
+          component: () => import("@/views/TouchscreenNowPlaying.vue"),
+        },
+        {
+          path: "queue",
+          name: "TouchscreenQueue",
+          component: () => import("@/views/TouchscreenQueue.vue"),
+        },
+      ],
+    }
+
   ],
 });
 

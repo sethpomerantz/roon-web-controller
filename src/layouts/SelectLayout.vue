@@ -19,7 +19,7 @@ export default {
   name: "SelectLayout",
   data: function () {
     return {
-      layout_list: [{ route: "Touchscreen", name: "Touchscreen" }],
+      layout_list: [{ route: "Touchscreen", name: "Touchscreen" },{ route: "Simple", name: "Simple" }],
     };
   },
 };

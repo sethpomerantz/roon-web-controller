@@ -17,7 +17,7 @@ export default {
       let payload = {
         command: this.command,
       };
-      this.$store.dispatch("GO_browse", payload);
+      this.$store.dispatch("GO_simple", payload);
     },
   },
 };

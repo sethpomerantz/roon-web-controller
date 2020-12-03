@@ -119,9 +119,11 @@ export default new Vuex.Store({
       let options = {
         command: "home",
       };
-      dispatch("GO_browse", options);
+      dispatch("GO_simple", options);
     },
     GO_browse: async ({ state, commit }, payload) => {
+      console.log("called GO_browse");
+
       let data = {};
       data.options = {
         zone_or_output_id: state.settings.current_zone_id,
@@ -156,6 +158,8 @@ export default new Vuex.Store({
       commit("SET_library", result);
     },
     GO_list: async ({ state, commit }, payload) => {
+      console.log("called GO_list");
+
       let data = {};
       data.options = {
         zone_or_output_id: state.settings.current_zone_id,
@@ -178,6 +182,8 @@ export default new Vuex.Store({
       commit("SET_library", result);
     },
     GO_page: async ({ state, commit }, payload) => {
+      console.log("called GO_page");
+
       let offset =
         payload.offset * state.ui.library_list_count +
         state.roon.library.offset;
@@ -199,6 +205,8 @@ export default new Vuex.Store({
       commit("SET_library", result);
     },
     GO_search: async ({ state, commit }, payload) => {
+      console.log("called GO_search");
+
       let data = {};
       data.options = {
         zone_or_output_id: state.settings.current_zone_id,
@@ -220,7 +228,45 @@ export default new Vuex.Store({
       let result = await response.json();
       commit("SET_library", result);
     },
+    GO_simple: async ({ state, commit }, payload) => {
+      console.log("called GO_simple");
+      let data = {};
+      data.options = {
+        zone_or_output_id: state.settings.current_zone_id,
+        hierarchy: "browse",
+        multi_session_key: state.tmp.session_key,
+      };
+      data.pager = {
+        count: state.ui.library_list_count,
+      };
+      let url = '';
+      switch (payload.command) {
+        case "home":
+          url = `${state.roon.base_url}/api/simple`;
+          // data.options.pop_all = true;
+          break;
+        case "back":
+          url = `${state.roon.base_url}/api/browse`;
+          data.options.pop_levels = 1;
+          break;
+        case "refresh":
+          data.options.refresh_list = true;
+          break;
+        default:
+          break;
+      }
+
+      let response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      let result = await response.json();
+      commit("SET_library", result);
+    },
     GO_command: async ({ state }, payload) => {
+      console.log("called GO_command");
+
       let url = `${state.roon.base_url}/api/cmd?id=${state.settings.current_zone_id}&command=${payload.command}`;
       if (payload.value !== undefined) {
         url += `&value=${payload.value}`;
